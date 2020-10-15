@@ -14,16 +14,16 @@ data_path = config['data_path']
 
 # start: the start index of the input file
 # end: the end index of the input file(exclusive)
-def calc_expression(start=1, end=1):
+def calc_expression(start=0, end=5):
     matched_label = np.load('test_imgs_label_matching.npy', allow_pickle=True)
 
     exps = []
     references = []
     for i in range(start, end):
-        df = pd.read_csv(os.path.join(data_path,f'refCOCO/attr_tables/attr_{file_id}.tsv'), encoding='utf-8',sep='\t')
+        df = pd.read_csv(os.path.join(data_path,f'refCOCO/attr_tables/attr_{i}.tsv'), encoding='utf-8',sep='\t')
 
         # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
-        # with open(os.path.join(data_path,f'refCOCO/labels/lab_{file_id}.json')) as json_file:
+        # with open(os.path.join(data_path,f'refCOCO/labels/lab_{i}.json')) as json_file:
         #     label = json.load(json_file)
         # refs = [[r] for r in label['ref_sents']]
         # references.append(refs)
