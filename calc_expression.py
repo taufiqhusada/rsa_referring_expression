@@ -23,10 +23,10 @@ def calc_expression(start=0, end=5):
         df = pd.read_csv(os.path.join(data_path,f'refCOCO/attr_tables/attr_{i}.tsv'), encoding='utf-8',sep='\t')
 
         # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
-        # with open(os.path.join(data_path,f'refCOCO/labels/lab_{i}.json')) as json_file:
-        #     label = json.load(json_file)
-        # refs = [[r] for r in label['ref_sents']]
-        # references.append(refs)
+        with open(os.path.join(data_path,f'refCOCO/labels/lab_{i}.json')) as json_file:
+            label = json.load(json_file)
+        refs = [[r] for r in label['ref_sents']]
+        references.append(refs)
         rsa_agent = RSA(df)
         targets = [matched_label[i][j][1] for j in range(min(3, len(matched_label[i])))]
         word_lists = [rsa_agent.full_speaker(target) for target in targets]
@@ -35,9 +35,9 @@ def calc_expression(start=0, end=5):
         if i % 50 == 0:
             print(f'finished file {i}')
 
-    np.save(f'/scratch3/hle/git/rsa_refer/top3_exps_from_{start}_to_{end}.npy',exps)
+    np.save(f'top3_exps_from_{start}_to_{end}.npy',exps)
     # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
-    # np.save(f'/scratch3/hle/git/rsa_refer/references_from_{start}_to_{end}.npy',references)
+    np.save(f'references_from_{start}_to_{end}.npy',references)
 
 
 if __name__ == '__main__':
