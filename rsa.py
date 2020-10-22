@@ -112,7 +112,7 @@ class RSA:
             utility = [logv-beta*self.cost(utt) for logv,utt in zip(logvalue,utts)]
             result = [math.exp(alpha*util) for util in utility]
             if np.sum(result) == 0:
-                return utts,list(np.zeros(len(result)))
+                return utts,list(np.zeros(len(result))), utterance_type
             res = result/np.sum(result)
             return utts,res, utterance_type
         else:

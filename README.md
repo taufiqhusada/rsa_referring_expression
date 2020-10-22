@@ -13,7 +13,7 @@ The project contains an implementation of the RSA framework applied to the refCO
   
 ## Execute the code
   - To run a demo, try the `Demo_compute_expression_with_rsa.ipynb` notebook.
-  - To generate the expressions for some images, run `python calc_expression.py --start <start_index> --end <end_index>`
+  - To generate the expressions for some images, run `python calc_expression.py --start <start_index> --end <end_index> --k <top k guesses>` where `start` and `end` are the start and end index of image reference id we want to process and `k` is the top-k guess that we want to find expression (the default value for k is 3)
   - To calculate the Bleu & Rouge score, check the `Compute_Bleu_Rouge_score.ipynb`
   - To try the the object matching algorithm, run the `Process_refCOCO_images_and_match_object_to_label.ipynb`
 
