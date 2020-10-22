@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import numpy as np
 import heapq
+from nltk.corpus import wordnet
 
 # FUNCTION TO DRAW A BOX AROUND AN OBJECT 
 def draw_box_obj(name, x,y,w,h, img=None, ax=None, filled=False):
@@ -40,3 +41,13 @@ def top_5_match(candidates, target):
     for elem in top_5:
         elem[0], elem[1], elem[2] = elem[2], elem[1], -elem[0]
     return top_5
+
+
+# GET THE SYNONYMS OF A WORD FROM NLTK WORDNET
+def get_synonyms(word):
+    synsets = wordnet.synsets(word)
+    synonyms = set()
+    for syn in synsets:
+        for l in syn.lemmas(): 
+            synonyms.add(l.name())
+    return synonyms
