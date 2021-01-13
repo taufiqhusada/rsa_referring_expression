@@ -2,7 +2,7 @@ import numpy as np
 import math
 from collections import defaultdict
 
-BOUND=2 #0.6730116670092565
+BOUND=0.1 #0.6730116670092565
 BASE=math.e
 NON_ZERO=0.0000000000000001
 theta_type = 0.0007
@@ -10,17 +10,58 @@ theta_att = 0.0025
 beta = 0.5
 alpha = 1
 
+RelationBetween = ['next to']
+RelationAmong = ['the left', 'the right', 'the middle', 'the biggest', 'the bigger', 'the smallest', 'the smaller']
+RelationOrdinal = []
+ordinal_map = {
+    1: 'first',
+    2: 'second',
+    3: 'third',
+    4: 'fourth',
+    5: 'fifth'
+}
+
+def row_objs(objects, target, targeted_type):
+    name,salience, x,y,w,h = list(objects[objects['box_alias']==target].iloc[0,:])
+    row = []
+    for obj in targeted_type:
+        other_name, other_salience, other_x,other_y,other_w, other_h = list(objects[objects['box_alias']==obj].iloc[0,:])
+        if y <= other_y <= y + h or other_y <= y <= other_y+ other_h:
+            row.append([obj, other_x, other_y])
+    row.sort(key=lambda x: x[1])
+    return [item[0] for item in row]
 
 class RSA:
-    def __init__(self, df):
+    def __init__(self, df, **kwargs):
         self.df = df
         self.types = [col[5:] for col in df.columns if 'TYPE_' in col]
         self.attributes = [col[5:] for col in df.columns if 'ATTR_' in col]
         self.objects = [obj for obj in df['box_alias']]
         self.saliences = list(df['salience'])
+        self.objects_by_type = self._sort_obj_by_type()
 
         self.obj_to_types, self.obj_to_attributes = self.create_obj_to_attr_types()
         self.attributes_for_type = self.create_attributes_for_type()
+        generated_relations = kwargs['generated_relations']
+        self._process_relations(generated_relations)
+
+    def _process_relations(self, relation_data):
+        for obj in relation_data.keys():
+            relations = relation_data[obj]
+            print("###")
+            for relation_blob in relations:
+                relation, target, prob = ' '.join(relation_blob[:-2]), relation_blob[-2], relation_blob[-1]
+                ## TODO: find a representation for target (currently use the object word) ##
+                target_str = target[:target.find('-')]
+                print(f'{relation} {target_str}')
+                self.obj_to_attributes[obj][f'{relation} {target_str}'] = prob
+
+    def _sort_obj_by_type(self):
+        objs_by_type = defaultdict(list)
+        for obj in self.objects:
+            obj_type = obj[:obj.index('-')]
+            objs_by_type[obj_type].append(obj)
+        return objs_by_type
 
     def create_obj_to_attr_types(self):
         obj_to_types = defaultdict(dict)
@@ -86,7 +127,7 @@ class RSA:
     # utt: the utterance under consideration
     def cost(self, utt):
         result = len(utt.split('_'))
-        return result
+        return 1#result
 
 
     # obj: the object under consideration
@@ -99,10 +140,15 @@ class RSA:
             us = self.types
             utterance_type = 'TYPE'
         else:
-            us = self.attributes_for_type[t]
+            us = list(self.obj_to_attributes[obj].keys())#self.attributes_for_type[t]
+            print(t, obj, us[:10], len(us))
+            print("$$$$$")
+            print(list(self.obj_to_attributes[obj].keys()))
             utterance_type = 'ATTR'
         # discard words that have been used already
         utts = [c for c in us if c not in curr]
+        print('the first from left' in utts)
+        print(utts[:10])
         if len(utts) > 0:
             idx = self.objects.index(obj)
             # probability of all the utterances given the input object
@@ -133,8 +179,51 @@ class RSA:
         output = []
         prior = self.objectPrior()
         t = ''
+        ############################
+        # CREATE SPATIAL UTTERANCE #
+        ############################
+        target_type = obj[:obj.index('-')]
+        target_type_objs = self.objects_by_type[target_type]
+        print(f'# of {target_type}: {len(target_type_objs)}')
+        objects_with_box = self.df[['box_alias','salience', 'x1','y1','w', 'h']]
+        print(target_type_objs)
+        for i, obj in enumerate(target_type_objs):
+            name,salience, x,y,w,h = list(objects_with_box[objects_with_box['box_alias']==obj].iloc[0,:])
+        #     print(name,salience, x,y,w,h)
+            if len(target_type_objs) == 2:
+                other_obj = targeted_type[(i+1)%2]
+                other_name, other_salience, other_x,other_y,other_w, other_h = list(objects[objects['box_alias']==other_obj].iloc[0,:])
+                if x < other_x:
+                    print(f"the left {obj}")
+                elif x > other_x:
+                    print(f"the right {obj}")
+                print(w*h, 1.1 * other_w * other_h)
+                if w*h >= 1.1 * other_w * other_h:
+                    print(f"the bigger {obj}")
+                elif w*h <= 0.9 * other_w * other_h:
+                    print(f"the smaller {obj}")
+            elif len(target_type_objs) >= 3:
+                row_of_objs = row_objs(objects_with_box, obj, target_type_objs)
+                print(obj, row_of_objs)
+                target_idx = row_of_objs.index(obj)
+                print("HELOOOOOOOOOOOOO")
+                if target_idx < len(row_of_objs)/2 and target_idx <= 3:
+                    ordinal_rel = f"the {ordinal_map[target_idx+1]} from left"
+                    print(ordinal_rel)
+                    self.obj_to_attributes[obj][ordinal_rel] = 1
+                elif target_idx >= len(row_of_objs)/2 and target_idx >=  len(row_of_objs) - 3:
+                    ordinal_rel = f"the {ordinal_map[len(row_of_objs)- target_idx]} from right"
+                    print(ordinal_rel)
+                    self.obj_to_attributes[obj][ordinal_rel] = 1
+        ############################
+        # DONE CREATE SPATIAL UTTERANCE #
+        ############################
+                
+
         for iter in range(10):
             # print('iteration',iter)
+            print("".join([f'{obj}\t' for obj in self.objects]))
+            print("".join([f'{pri}\t' for pri in prior]))
             utts,pro, utterance_type = self.speaker(obj, prior, t, output) 
             #print(iter, prior)
             if len(utts) > 0:
@@ -147,6 +236,7 @@ class RSA:
                 new_c = self.literal_listener(u,prior, utterance_type)
                 output.append(u)
             ent = self.entropy(new_c)
+            print('ENTROPY:', ent)
             # print(iter,'new_c',new_c)
             # print(iter,'ent',ent)
             prior = new_c

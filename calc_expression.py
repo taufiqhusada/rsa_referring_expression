@@ -36,9 +36,9 @@ def calc_expression(start=0, end=5, k=3):
         if i % 50 == 0:
             print(f'finished file {i}')
 
-    np.save(f'top{k}_exps_from_{start}_to_{end}.npy',exps)
+    np.save(f'./data/top{k}_exps_from_{start}_to_{end}.npy',exps)
     # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
-    np.save(f'references_from_{start}_to_{end}.npy',references)
+    np.save(f'./data/references_from_{start}_to_{end}.npy',references)
 
 
 if __name__ == '__main__':
