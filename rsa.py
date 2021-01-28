@@ -44,10 +44,21 @@ class RSA:
         self.attributes_for_type = self.create_attributes_for_type()
         generated_relations = kwargs['generated_relations']
         self._process_relations(generated_relations)
-
-        if model in kwargs:
-            self.model = kwargs[model]
+        if 'model' in kwargs:
+            self.model = kwargs['model']
+            self.word_to_idx = kwargs['word_to_idx']
+            self.idx_to_word = kwargs['idx_to_word']
         self.last_3_word = ["", ""]
+
+    def _encode_sentence(self, sentence):
+        out = []
+        for word in sentence:
+            if word not in self.word_to_idx:
+                val = len(self.word_to_idx)
+                self.word_to_idx[word] = val
+                self.idx_to_word[val] = word
+            out.append(self.word_to_idx[word])
+        return np.array([out])
 
     def _process_relations(self, relation_data):
         for obj in relation_data.keys():
@@ -150,11 +161,15 @@ class RSA:
             idx = self.objects.index(obj)
             # probability of all the utterances given the input object
             prob = [self.literal_listener(utt, pri, utterance_type)[idx] for utt in utts]
-            # TODO: add log of this prob with LSTM output
-            # if len(self.last_3_word) > 3 and self.model:
-            #     output = self.model(self.last_3_word[-3:])
-            #     print("########################### INTEGRATING MODEL")
-            #     print(output)
+            # feeding last 3 word to a model to adjust utterances' prior
+            if len(self.last_3_word) >= 3 and self.model:
+                model_input = self._encode_sentence(self.last_3_word[-3:])
+                output = self.model(model_input)
+                # adjust all utterances that appear in the vocabulary of the training model
+                for i, utt in enumerate(utts):
+                    if utt in self.word_to_idx:
+                        prob[i] += output[0][self.word_to_idx[utt]]
+                        prob[i] = prob[i].numpy()
             #calculate the likelihood with the formula: exp (alpha * (log - beta*cost))
             logvalue = [math.log(p) if p > 0 else -2147483647 for p in prob]
             utility = [logv-beta*self.cost(utt) for logv,utt in zip(logvalue,utts)]
