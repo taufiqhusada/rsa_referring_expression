@@ -45,15 +45,17 @@ class RSA:
         generated_relations = kwargs['generated_relations']
         self._process_relations(generated_relations)
 
+        if model in kwargs:
+            self.model = kwargs[model]
+        self.last_3_word = ["", ""]
+
     def _process_relations(self, relation_data):
         for obj in relation_data.keys():
             relations = relation_data[obj]
-            print("###")
             for relation_blob in relations:
                 relation, target, prob = ' '.join(relation_blob[:-2]), relation_blob[-2], relation_blob[-1]
                 ## TODO: find a representation for target (currently use the object word) ##
                 target_str = target[:target.find('-')]
-                print(f'{relation} {target_str}')
                 self.obj_to_attributes[obj][f'{relation} {target_str}'] = prob
 
     def _sort_obj_by_type(self):
@@ -141,18 +143,18 @@ class RSA:
             utterance_type = 'TYPE'
         else:
             us = list(self.obj_to_attributes[obj].keys())#self.attributes_for_type[t]
-            print(t, obj, us[:10], len(us))
-            print("$$$$$")
-            print(list(self.obj_to_attributes[obj].keys()))
             utterance_type = 'ATTR'
         # discard words that have been used already
         utts = [c for c in us if c not in curr]
-        print('the first from left' in utts)
-        print(utts[:10])
         if len(utts) > 0:
             idx = self.objects.index(obj)
             # probability of all the utterances given the input object
             prob = [self.literal_listener(utt, pri, utterance_type)[idx] for utt in utts]
+            # TODO: add log of this prob with LSTM output
+            # if len(self.last_3_word) > 3 and self.model:
+            #     output = self.model(self.last_3_word[-3:])
+            #     print("########################### INTEGRATING MODEL")
+            #     print(output)
             #calculate the likelihood with the formula: exp (alpha * (log - beta*cost))
             logvalue = [math.log(p) if p > 0 else -2147483647 for p in prob]
             utility = [logv-beta*self.cost(utt) for logv,utt in zip(logvalue,utts)]
@@ -184,37 +186,36 @@ class RSA:
         ############################
         target_type = obj[:obj.index('-')]
         target_type_objs = self.objects_by_type[target_type]
-        print(f'# of {target_type}: {len(target_type_objs)}')
         objects_with_box = self.df[['box_alias','salience', 'x1','y1','w', 'h']]
-        print(target_type_objs)
         for i, obj in enumerate(target_type_objs):
             name,salience, x,y,w,h = list(objects_with_box[objects_with_box['box_alias']==obj].iloc[0,:])
-        #     print(name,salience, x,y,w,h)
             if len(target_type_objs) == 2:
-                other_obj = targeted_type[(i+1)%2]
-                other_name, other_salience, other_x,other_y,other_w, other_h = list(objects[objects['box_alias']==other_obj].iloc[0,:])
+                other_obj = target_type_objs[(i+1)%2]
+                other_name, other_salience, other_x,other_y,other_w, other_h = list(objects_with_box[objects_with_box['box_alias']==other_obj].iloc[0,:])
+                max_prob = max(self.obj_to_attributes[obj].values())
                 if x < other_x:
-                    print(f"the left {obj}")
+                    ordinal_rel = "the left"
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
                 elif x > other_x:
-                    print(f"the right {obj}")
-                print(w*h, 1.1 * other_w * other_h)
+                    ordinal_rel = "the right"
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
                 if w*h >= 1.1 * other_w * other_h:
-                    print(f"the bigger {obj}")
+                    ordinal_rel = "the bigger"
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
                 elif w*h <= 0.9 * other_w * other_h:
-                    print(f"the smaller {obj}")
+                    ordinal_rel = "the smaller"
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
             elif len(target_type_objs) >= 3:
                 row_of_objs = row_objs(objects_with_box, obj, target_type_objs)
-                print(obj, row_of_objs)
                 target_idx = row_of_objs.index(obj)
-                print("HELOOOOOOOOOOOOO")
+                max_prob = max(self.obj_to_attributes[obj].values())
                 if target_idx < len(row_of_objs)/2 and target_idx <= 3:
                     ordinal_rel = f"the {ordinal_map[target_idx+1]} from left"
-                    print(ordinal_rel)
-                    self.obj_to_attributes[obj][ordinal_rel] = 1
+                    # setting the probability of this ordinal to max value among all attributes of this obj (originally set to 1)
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
                 elif target_idx >= len(row_of_objs)/2 and target_idx >=  len(row_of_objs) - 3:
                     ordinal_rel = f"the {ordinal_map[len(row_of_objs)- target_idx]} from right"
-                    print(ordinal_rel)
-                    self.obj_to_attributes[obj][ordinal_rel] = 1
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob #1
         ############################
         # DONE CREATE SPATIAL UTTERANCE #
         ############################
@@ -222,25 +223,32 @@ class RSA:
 
         for iter in range(10):
             # print('iteration',iter)
-            print("".join([f'{obj}\t' for obj in self.objects]))
-            print("".join([f'{pri}\t' for pri in prior]))
+            # print("".join([f'{obj}\t' for obj in self.objects]))
+            # print("".join([f'{pri}\t' for pri in prior]))
+            # the utterances and the corresponding probabilities that a pragmatic speaker would take
             utts,pro, utterance_type = self.speaker(obj, prior, t, output) 
             #print(iter, prior)
             if len(utts) > 0:
+                # idx of the most likely word that speaker will choose (highest probability)
                 idx=np.argmax(pro)
-                # print("YOYO",utts[idx])
-            if pro[idx] <= 0:
-                new_c = prior
-            else:
-                u = utts[idx]
-                new_c = self.literal_listener(u,prior, utterance_type)
-                output.append(u)
-            ent = self.entropy(new_c)
-            print('ENTROPY:', ent)
-            # print(iter,'new_c',new_c)
-            # print(iter,'ent',ent)
-            prior = new_c
-            t = output[0]
-            if ent <= BOUND:
-                break
+                # if the prob of using this word is <= 0, priors of object is reset to default
+                if pro[idx] <= 0:
+                    new_c = prior
+                else:
+                    u = utts[idx]
+                    # update the prior
+                    new_c = self.literal_listener(u,prior, utterance_type)
+                    # add the new utterance to the output
+                    output.append(u)
+                    # add the new utterance to the list of wors spoken so far (used to predict next word with a model)
+                    self.last_3_word.append(u)
+                # calculate entropy, break if entropy is small enough
+                ent = self.entropy(new_c)
+                # print('ENTROPY:', ent)
+                # print(iter,'new_c',new_c)
+                # print(iter,'ent',ent)
+                prior = new_c
+                t = output[0]
+                if ent <= BOUND:
+                    break
         return output

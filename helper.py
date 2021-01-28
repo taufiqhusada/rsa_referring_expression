@@ -5,15 +5,15 @@ import heapq
 from nltk.corpus import wordnet
 
 # FUNCTION TO DRAW A BOX AROUND AN OBJECT 
-def draw_box_obj(name, x,y,w,h, img=None, ax=None, filled=False):
+def draw_box_obj(name, x,y,w,h, img=None, ax=None, filled=False, color=None):
     if not ax:
         fig,ax = plt.subplots(1)
         ax.add_image(img)
-    color = np.random.rand(3,)
-    box_plot = Rectangle((x,y),w,h, fill=filled, edgecolor=color, linewidth=1)
+    color = np.random.rand(3,) if not color else color
+    box_plot = Rectangle((x,y),w,h, fill=filled, edgecolor=color, linewidth=2)
     ax.add_patch(box_plot)
-    ax.text(x,y, name, size=10, color=color)
-    return ax
+    ax.text(x+w//2,y+h//2, name, fontsize=15, color=color, horizontalalignment='center', verticalalignment='center')
+    return ax, color
 
 #CALCULATING THE OVERLAPPING AREA OF 2 BOXES
 def calc_overlap(x1_tl,y1_tl,w1,h1,x2_tl,y2_tl,w2,h2):
