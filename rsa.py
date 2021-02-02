@@ -52,12 +52,12 @@ class RSA:
 
     def _encode_sentence(self, sentence):
         out = []
+#       if the word does not appear in the dictionary/vocabulary, treat it as a blank character
         for word in sentence:
             if word not in self.word_to_idx:
-                val = len(self.word_to_idx)
-                self.word_to_idx[word] = val
-                self.idx_to_word[val] = word
-            out.append(self.word_to_idx[word])
+                out.append(self.word_to_idx[''])
+            else:
+                out.append(self.word_to_idx[word])
         return np.array([out])
 
     def _process_relations(self, relation_data):
@@ -85,7 +85,7 @@ class RSA:
                 obj = row.iloc[0]
                 prob = row.iloc[1]
                 if prob > theta_type:
-                    obj_to_types[obj][t] = prob
+                    obj_to_types[obj][t] = 1 #prob
         
         obj_to_attributes = defaultdict(dict)
         for att in self.attributes:
@@ -95,7 +95,7 @@ class RSA:
                 obj = row.iloc[0]
                 prob = row.iloc[1]
                 if prob > theta_att:
-                    obj_to_attributes[obj][att] = prob
+                    obj_to_attributes[obj][att] = 1 #prob
         return obj_to_types, obj_to_attributes
 
 
@@ -162,7 +162,7 @@ class RSA:
             # probability of all the utterances given the input object
             prob = [self.literal_listener(utt, pri, utterance_type)[idx] for utt in utts]
             # feeding last 3 word to a model to adjust utterances' prior
-            if len(self.last_3_word) >= 3 and self.model:
+            if len(self.last_3_word) >= 3 and hasattr(self, 'model'):
                 model_input = self._encode_sentence(self.last_3_word[-3:])
                 output = self.model(model_input)
                 # adjust all utterances that appear in the vocabulary of the training model

@@ -2,3 +2,5 @@
 .ipynb_checkpoints
 __pycache__
 *.swp
+data/validation_images/train/*
+data/validation_images/test/*

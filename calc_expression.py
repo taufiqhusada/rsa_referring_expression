@@ -6,6 +6,7 @@ from helper import *
 import argparse
 from rsa import RSA
 import os
+import tensorflow as tf
 
 with open('config.json') as config_file:
     config = json.load(config_file)
@@ -29,7 +30,16 @@ def calc_expression(start=0, end=5, k=3, target_set='test'):
         refs = [[r] for r in label['ref_sents']]
         references.append(refs)
         generated_relations = rel_load[i]
-        rsa_agent = RSA(df, generated_relations=generated_relations)
+        
+        ### adding LSTM to adjust utterance prior ###
+        #lstm = tf.keras.models.load_model('three_gram_lstm_loss_2.8469_accuracy_0.4227.h5')
+#         f = open('word_to_idx_vice_versa.json')
+#         tokenizer = json.load(f)
+#         word_to_idx = tokenizer['word_to_idx']
+#         idx_to_word = tokenizer['idx_to_word']
+        
+        rsa_agent = RSA(df, generated_relations=generated_relations)#,\
+                        #model=lstm, word_to_idx=word_to_idx, idx_to_word=idx_to_word)
         targets = [matched_label[i][j][1] for j in range(min(k, len(matched_label[i])))]
         word_lists = [rsa_agent.full_speaker(target) for target in targets]
         expression = [' '.join(word_lists[j][::-1]) for j in range(len(word_lists))]
