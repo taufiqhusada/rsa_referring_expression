@@ -17,12 +17,13 @@ data_path = config['data_path']
 # end: the end index of the input file(exclusive)
 # k: top k guessed expressions
 def calc_expression(start=0, end=5, k=3, target_set='test'):
-    matched_label = np.load(f'{target_set}_imgs_label_matching.npy', allow_pickle=True)
+    matched_label = np.load(f'{target_set}_imgs_label_matching_with_true_target.npy', allow_pickle=True)
     rel_load = np.load(f'./{target_set}_relation_extraction.npy', allow_pickle=True)
     exps = []
     references = []
+    low_confidence_track = [] # keep track if rsa ever encounter a low confident situation (don't have anything to say or no preference-0probabilty everywhere)
     for i in range(start, end):
-        df = pd.read_csv(os.path.join(data_path,f'refCOCO/{target_set}/attr_tables/attr_{i}.tsv'), encoding='utf-8',sep='\t')
+        df = pd.read_csv(os.path.join(data_path,f'refCOCO/{target_set}/attr_tables_with_target_box/attr_{i}.tsv'), encoding='utf-8',sep='\t')
 
         # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
         with open(os.path.join(data_path,f'refCOCO/{target_set}/labels/lab_{i}.json')) as json_file:
@@ -41,15 +42,22 @@ def calc_expression(start=0, end=5, k=3, target_set='test'):
         rsa_agent = RSA(df, generated_relations=generated_relations)#,\
                         #model=lstm, word_to_idx=word_to_idx, idx_to_word=idx_to_word)
         targets = [matched_label[i][j][1] for j in range(min(k, len(matched_label[i])))]
-        word_lists = [rsa_agent.full_speaker(target) for target in targets]
+        word_lists = []
+        is_low_confidence = []
+        for target in targets:
+            list_utterances, low_confidence = rsa_agent.full_speaker(target)
+            word_lists.append(list_utterances)
+            is_low_confidence.append(low_confidence)
         expression = [' '.join(word_lists[j][::-1]) for j in range(len(word_lists))]
         exps.append(expression)
+        low_confidence_track.append(is_low_confidence)
         if i % 50 == 0:
             print(f'finished file {i}')
 
-    np.save(f'./data/{target_set}/top{k}_exps_from_{start}_to_{end}.npy',exps)
+    np.save(f'./data/{target_set}/detectron2_with_target/top{k}_exps_from_{start}_to_{end}.npy',exps)
+    np.save(f'./data/{target_set}/detectron2_with_target/top{k}_exps_confidence_record_from_{start}_to_{end}.npy',low_confidence_track)
     # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
-    np.save(f'./data/{target_set}/references_from_{start}_to_{end}.npy',references)
+    np.save(f'./data/{target_set}/detectron2_with_target/references_from_{start}_to_{end}.npy',references)
 
 
 if __name__ == '__main__':

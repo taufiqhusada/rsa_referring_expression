@@ -175,11 +175,11 @@ class RSA:
             utility = [logv-beta*self.cost(utt) for logv,utt in zip(logvalue,utts)]
             result = [math.exp(alpha*util) for util in utility]
             if np.sum(result) == 0:
-                return utts,list(np.zeros(len(result))), utterance_type
+                return utts,list(np.zeros(len(result))), 'None' # return utterance_type of None to signify that there's no preference in next word
             res = result/np.sum(result)
             return utts,res, utterance_type
         else:
-            return utts,[], utterance_type
+            return utts,[], 'None' 
 
 
     def entropy(self, p):
@@ -234,15 +234,16 @@ class RSA:
         ############################
         # DONE CREATE SPATIAL UTTERANCE #
         ############################
-                
-
+        # during speaker iterations, keep track if we ever run into situation where we have nothing to say or no preference
+        # a True low_confidence means that either the list of possible utterance is empty OR the calculating probability is
+        # all 0 everywhere. This might be because of theta value we set is too high (there's no type/attr with high enough
+        # value to be associated with the obj in obj_to_types and obj_to_atttributes) 
+        low_confidence = False
         for iter in range(10):
-            # print('iteration',iter)
-            # print("".join([f'{obj}\t' for obj in self.objects]))
-            # print("".join([f'{pri}\t' for pri in prior]))
             # the utterances and the corresponding probabilities that a pragmatic speaker would take
             utts,pro, utterance_type = self.speaker(obj, prior, t, output) 
-            #print(iter, prior)
+            if utterance_type == 'None':
+                low_confidence = True
             if len(utts) > 0:
                 # idx of the most likely word that speaker will choose (highest probability)
                 idx=np.argmax(pro)
@@ -263,7 +264,7 @@ class RSA:
                 # print(iter,'new_c',new_c)
                 # print(iter,'ent',ent)
                 prior = new_c
-                t = output[0]
+                t = utterance_type
                 if ent <= BOUND:
                     break
-        return output
+        return output, low_confidence
