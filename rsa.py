@@ -239,7 +239,9 @@ class RSA:
         # all 0 everywhere. This might be because of theta value we set is too high (there's no type/attr with high enough
         # value to be associated with the obj in obj_to_types and obj_to_atttributes) 
         low_confidence = False
-        for iter in range(10):
+        # stop after reaching the expression limit (i.e preventing the case of generating expressions that are too long)
+        expression_limit = 4
+        for iter in range(expression_limit):
             # the utterances and the corresponding probabilities that a pragmatic speaker would take
             utts,pro, utterance_type = self.speaker(obj, prior, t, output) 
             if utterance_type == 'None':
