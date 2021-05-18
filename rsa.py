@@ -150,7 +150,7 @@ class RSA:
     def speaker(self, obj, pri, t, curr):
         # either consider the types utterance or the attribute utterance if t != 0 then we use all attributes related to type t
         if len(t) == 0:
-            us = self.types
+            us = list(self.obj_to_types[obj].keys())#self.types
             utterance_type = 'TYPE'
         else:
             us = list(self.obj_to_attributes[obj].keys())#self.attributes_for_type[t]
@@ -188,18 +188,18 @@ class RSA:
             ent -= i*math.log(i+NON_ZERO,BASE)
         return ent
 
-    # obj: the target object
+    # target_object: the target object
     # objects: list of all the objects
     # types: all the possible types (used as utterance)
     # attributes_for_type: a dict that map all possible attributes to each type
-    def full_speaker(self, obj):
+    def full_speaker(self, target_object):
         output = []
         prior = self.objectPrior()
         t = ''
         ############################
         # CREATE SPATIAL UTTERANCE #
         ############################
-        target_type = obj[:obj.index('-')]
+        target_type = target_object[:target_object.index('-')]
         target_type_objs = self.objects_by_type[target_type]
         objects_with_box = self.df[['box_alias','salience', 'x1','y1','w', 'h']]
         for i, obj in enumerate(target_type_objs):
@@ -237,18 +237,20 @@ class RSA:
         # during speaker iterations, keep track if we ever run into situation where we have nothing to say or no preference
         # a True low_confidence means that either the list of possible utterance is empty OR the calculating probability is
         # all 0 everywhere. This might be because of theta value we set is too high (there's no type/attr with high enough
-        # value to be associated with the obj in obj_to_types and obj_to_atttributes) 
+        # value to be associated with the target_object in obj_to_types and obj_to_atttributes) 
         low_confidence = False
         # stop after reaching the expression limit (i.e preventing the case of generating expressions that are too long)
         expression_limit = 4
         for iter in range(expression_limit):
             # the utterances and the corresponding probabilities that a pragmatic speaker would take
-            utts,pro, utterance_type = self.speaker(obj, prior, t, output) 
+            utts,pro, utterance_type = self.speaker(target_object, prior, t, output) 
             if utterance_type == 'None':
                 low_confidence = True
             if len(utts) > 0:
                 # idx of the most likely word that speaker will choose (highest probability)
                 idx=np.argmax(pro)
+                print(idx)
+                print(list(zip(utts,pro)))
                 # if the prob of using this word is <= 0, priors of object is reset to default
                 if pro[idx] <= 0:
                     new_c = prior
