@@ -249,8 +249,6 @@ class RSA:
             if len(utts) > 0:
                 # idx of the most likely word that speaker will choose (highest probability)
                 idx=np.argmax(pro)
-                print(idx)
-                print(list(zip(utts,pro)))
                 # if the prob of using this word is <= 0, priors of object is reset to default
                 if pro[idx] <= 0:
                     new_c = prior
