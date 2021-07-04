@@ -1,3 +1,5 @@
 {
-    "data_path": "/scratch2/hle"
+    "data_path": "/scratch2/hle",
+    "new_data_path": "/scratch2/thdaryan/data/new_result_merge_graph",
+    "merged_data_path": "/scratch2/thdaryan/data/merged_result"
 }
