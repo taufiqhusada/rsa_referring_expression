@@ -5,7 +5,8 @@ from collections import defaultdict
 BOUND=0.1 #0.6730116670092565
 BASE=math.e
 NON_ZERO=0.0000000000000001
-theta_type = 0.0007
+theta_type_old_data = 0.0007
+theta_type_new_data = 0.012
 theta_att = 0.0025
 beta = 0.5
 alpha = 1
@@ -88,11 +89,12 @@ class RSA:
         obj_to_types = defaultdict(dict)
         for t in self.types:
             col_type = f'TYPE_{t}'
-            type_df = self.df[['box_alias', col_type]]
+            type_df = self.df[['box_alias', col_type, 'is_old_data']]
             for index, row in type_df.iterrows():
                 obj = row.iloc[0]
                 prob = row.iloc[1]
-                if prob > theta_type:
+                is_old_data = row.iloc[2]
+                if ((is_old_data and prob > theta_type_old_data) or ((not is_old_data) and prob > theta_type_new_data) ):
                     dict_obj_to_types_above_threshold[obj].append((prob, t))
 
         # for each object sort the features (based on prob) then pick top_k_features type
