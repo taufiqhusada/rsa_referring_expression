@@ -8,7 +8,7 @@ NON_ZERO=0.0000000000000001
 theta_type_old_data = 0.0007
 theta_type_new_data = 0.012
 theta_att_old_data = 0.0025
-theta_att_new_data = 0.00253
+theta_att_new_data = 0.00252
 
 beta = 0.5
 alpha = 1
