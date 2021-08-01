@@ -1,5 +1,3 @@
-# RSA code after merging old data and new data
-
 import numpy as np
 import math
 from collections import defaultdict
@@ -7,11 +5,8 @@ from collections import defaultdict
 BOUND=0.1 #0.6730116670092565
 BASE=math.e
 NON_ZERO=0.0000000000000001
-theta_type_old_data = 0.0007
-theta_type_new_data = 0.012
-theta_att_old_data = 0.00252
-theta_att_new_data = 0.00252
-
+theta_type = 0.0007
+theta_att = 0.0025
 beta = 0.5
 alpha = 1
 
@@ -85,23 +80,21 @@ class RSA:
         obj_to_types = defaultdict(dict)
         for t in self.types:
             col_type = f'TYPE_{t}'
-            type_df = self.df[['box_alias', col_type, 'is_old_type']]
+            type_df = self.df[['box_alias', col_type]]
             for index, row in type_df.iterrows():
                 obj = row.iloc[0]
                 prob = row.iloc[1]
-                is_old_type = row.iloc[2]
-                if ((is_old_type and prob > theta_type_old_data) or ((not is_old_type) and prob > theta_type_new_data) ):
+                if prob > theta_type:
                     obj_to_types[obj][t] = 1 #prob
         
         obj_to_attributes = defaultdict(dict)
         for att in self.attributes:
             col_att = f'ATTR_{att}'
-            attr_df = self.df[['box_alias', col_att, 'is_old_attr']]
+            attr_df = self.df[['box_alias', col_att]]
             for index, row in attr_df.iterrows():
                 obj = row.iloc[0]
                 prob = row.iloc[1]
-                is_old_attr = row.iloc[2]
-                if ((is_old_attr and prob > theta_att_old_data) or ((not is_old_attr) and prob > theta_att_new_data) ):
+                if prob > theta_att:
                     obj_to_attributes[obj][att] = 1 #prob
         return obj_to_types, obj_to_attributes
 
@@ -234,7 +227,7 @@ class RSA:
                 if target_idx < len(row_of_objs)/2 and target_idx <= 3:
                     ordinal_rel = f"the {ordinal_map[target_idx+1]} from left"
                     # setting the probability of this ordinal to max value among all attributes of this obj (originally set to 1)
-                    self.obj_to_attributes[obj][ordinal_rel] = 1 #max_prob
+                    self.obj_to_attributes[obj][ordinal_rel] = max_prob
                 elif target_idx >= len(row_of_objs)/2 and target_idx >=  len(row_of_objs) - 3:
                     ordinal_rel = f"the {ordinal_map[len(row_of_objs)- target_idx]} from right"
                     self.obj_to_attributes[obj][ordinal_rel] = 1 #max_prob #1
