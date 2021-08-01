@@ -20,6 +20,7 @@ def calc_expression(start=0, end=5, k=3, target_set='test'):
     matched_label = np.load(f'{target_set}_imgs_label_matching_with_true_target.npy', allow_pickle=True)
     rel_load = np.load(f'./{target_set}_relation_extraction.npy', allow_pickle=True)
     exps = []
+    all_word_lists = []
     references = []
     low_confidence_track = [] # keep track if rsa ever encounter a low confident situation (don't have anything to say or no preference-0probabilty everywhere)
     for i in range(start, end):
@@ -48,12 +49,15 @@ def calc_expression(start=0, end=5, k=3, target_set='test'):
             list_utterances, low_confidence = rsa_agent.full_speaker(target)
             word_lists.append(list_utterances)
             is_low_confidence.append(low_confidence)
+            
+        all_word_lists.append(word_lists[0])
         expression = [' '.join(word_lists[j][::-1]) for j in range(len(word_lists))]
         exps.append(expression)
         low_confidence_track.append(is_low_confidence)
         if i % 50 == 0:
             print(f'finished file {i}')
 
+    np.save(f'./data/{target_set}/detectron2_with_target/generated_word_lists_from_{start}_to_{end}.npy',all_word_lists)
     np.save(f'./data/{target_set}/detectron2_with_target/top{k}_exps_from_{start}_to_{end}.npy',exps)
     np.save(f'./data/{target_set}/detectron2_with_target/top{k}_exps_confidence_record_from_{start}_to_{end}.npy',low_confidence_track)
     # UNCOMMENT TO SAVE THE REFERENCES OF THE SAME RANGE AS THE PROCESSED IMAGES
