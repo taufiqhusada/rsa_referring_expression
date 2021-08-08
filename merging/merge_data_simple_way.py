@@ -6,7 +6,7 @@ import sys
 sys.path.append('../')
 from helper import *
 
-merged_data_path = '/scratch2/thdaryan/data/new_merged_result_using_attr_old_data'
+merged_data_path = '/scratch2/thdaryan/data/new_merged_result'
 with open('../config.json') as config_file:
     config = json.load(config_file)
 old_data_path = config['old_data_path']
@@ -74,30 +74,6 @@ def merge_old_and_new_df(file_idx):
             for subclass_name in dict_list_subclass[class_name]:
                 list_idx_to_be_dropped += dict_class_list_index[subclass_name]
 
-
-        # handle overlap boxes (choose attribute from old data instead)
-        # find overlap
-        result_top_match = None
-        result_top_5_match = top_5_match(df_old[['box_alias', 'x1','y1','w','h']], row[5:9])
-#         print(result_top_5_match)
-        for res in result_top_5_match:
-            idx_old = res[0]
-            name = res[1]
-            similarity = res[2]
-            if (name.split('-')[0]==class_name or (class_name in dict_list_subclass and name.split('-')[0]==dict_list_subclass[class_name])):
-                result_top_match = (idx_old, name, similarity)
-                break
-                
-        if (result_top_match != None):
-            if (similarity > .6):
-                overlap_obj_idx = result_top_match[0]
-
-                # use attribute from old data
-                for col in df_old.columns:
-                    if ('ATTR' in col):
-                        row[col] = df_old.loc[overlap_obj_idx][col]
-                row['is_old_attr'] = True
-        
         df_merged = df_merged.append(row, ignore_index = True)
        
 
